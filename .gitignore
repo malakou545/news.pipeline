@@ -1,0 +1,9 @@
+# Node dependencies
+screenshot_tool/node_modules/
+
+# OS temporary files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
