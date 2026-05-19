@@ -44,13 +44,19 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
       
   init-airflow:
     build:
       context: .
       dockerfile: Dockerfile.airflow
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
@@ -61,8 +67,10 @@ services:
       context: .
       dockerfile: Dockerfile.airflow
     depends_on:
-      - postgres
-      - init-airflow
+      postgres:
+        condition: service_healthy
+      init-airflow:
+        condition: service_completed_successfully
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
@@ -73,14 +81,17 @@ services:
       - ./jobs:/opt/airflow/jobs
     ports:
       - "8082:8080"
-    command: bash -c "airflow users create --role Admin --username admin --email admin --firstname admin --lastname admin --password admin && airflow webserver"
+    command: bash -c "airflow users create --role Admin --username admin --email admin --firstname admin --lastname admin --password admin || true && airflow webserver"
 
   airflow-scheduler:
     build:
       context: .
       dockerfile: Dockerfile.airflow
     depends_on:
-      - airflow-webserver
+      postgres:
+        condition: service_healthy
+      init-airflow:
+        condition: service_completed_successfully
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
@@ -122,13 +133,6 @@ services:
     image: metabase/metabase
     ports:
       - "3001:3000"
-    environment:
-      - MB_DB_TYPE=postgres
-      - MB_DB_DBNAME=airflow
-      - MB_DB_PORT=5432
-      - MB_DB_USER=airflow
-      - MB_DB_PASS=airflow
-      - MB_DB_HOST=postgres
     depends_on:
       - postgres
 

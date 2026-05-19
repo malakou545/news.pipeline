@@ -54,6 +54,7 @@ def run_cleaning():
         .config("spark.hadoop.fs.s3a.secret.key", "password") \
         .config("spark.hadoop.fs.s3a.path.style.access", True) \
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4") \
         .getOrCreate()
 
     # ── Read raw bronze data ──────────────────────────
